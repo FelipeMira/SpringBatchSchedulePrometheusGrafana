@@ -1,0 +1,99 @@
+version: '3.7'
+
+services:
+  mysqldb:
+    image: mysql:5.7
+    container_name: mysqldb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "admin123456"
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_USER_HOST: '%'
+      MYSQL_USER: "sa"
+      MYSQL_PASSWORD: "sa123456"
+      MYSQL_DATABASE: spring_batch
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysqldb_storage:/var/lib/mysql
+    networks:
+      - observability-network
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    ports:
+      - 3307:8080
+    networks:
+      - observability-network
+
+  springbatch:
+    container_name: springbatch
+    image: springbatch-img
+    build:
+      context: ./Spring-Batch-Prometheus/
+      dockerfile: Dockerfile
+    expose: 
+      - 8080
+    ports:
+      - 8082:8080
+    restart: always
+    depends_on:
+      - db
+      - prometheus
+      - grafana
+    networks:
+      - observability-network
+      
+  grafana:
+    image: grafana/grafana:6.7.2
+    container_name: grafana
+    volumes:
+      - grafana_storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=${ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    expose:
+      - 3000
+    ports:
+      - "3000:3000"
+    networks:
+      - observability-network
+    labels:
+      org.label-schema.group: "observability"
+
+  prometheus:
+    image: prom/prometheus:v2.17.1
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_storage:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    expose:
+      - 9090
+    ports:
+      - "9090:9090"
+    networks:
+      - observability-network
+    labels:
+      org.label-schema.group: "observability"
+
+volumes:
+  prometheus_storage: {}
+  grafana_storage: {}
+  mysqldb_storage: {}
+    
+
+networks: 
+  observability-network:
+    driver: bridge
