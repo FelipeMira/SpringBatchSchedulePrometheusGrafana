@@ -39,7 +39,7 @@ services:
       - 8082:8080
     restart: always
     depends_on:
-      - db
+      - mysqldb
       - prometheus
       - grafana
     networks:

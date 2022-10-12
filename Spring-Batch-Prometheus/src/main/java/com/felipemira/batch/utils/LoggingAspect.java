@@ -1,11 +1,11 @@
 package com.felipemira.batch.utils;
 
+import com.felipemira.batch.dao.ProductCSVMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.annotation.Around;
-import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.annotation.*;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,4 +55,32 @@ public class LoggingAspect
 
         return result;
     }
+/*
+    //@Pointcut("execution(* com.felipemira.batch.processors.ProductItemProcessor.process(..)) && args(productItem, *)")
+    @Around("execution(* com.felipemira.batch.processors.ProductItemProcessor.process(..)) && args(productItem)")
+    public void profileProductItemProcessor(ProceedingJoinPoint joinPoint, ProductCSVMapper productItem) throws Throwable
+    {
+        Object ignoredToStringResult = joinPoint.proceed();
+        System.out.println(productItem.getName());
+
+    }
+    @Around("profileProductItemProcessor(productItem)")
+    public void toLowerCase(ProceedingJoinPoint joinPoint, ProductCSVMapper productItem) throws Throwable {
+        Object ignoredToStringResult = joinPoint.proceed();
+        System.out.println("DateTime#toString() has been invoked: " + ignoredToStringResult);
+    }
+    */
+
+    @Pointcut("execution(* com.felipemira.batch.processors.ProductItemProcessor.process(..)) && args(productItem)")
+    public void profileProductItemProcessor(ProductCSVMapper productItem)
+    {
+        System.out.println(productItem.getName());
+    }
+
+    @Around("profileProductItemProcessor(productItem)")
+    public Object capture(ProceedingJoinPoint thisJoinPoint, ProductCSVMapper productItem) throws Throwable {
+        System.out.println(productItem);
+        return thisJoinPoint.proceed();
+    }
+
 }
